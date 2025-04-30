@@ -1,0 +1,12 @@
+{
+    "SONAR_ANALYZE": {
+        "enabled": true,
+        "triggers": ["When the user asks for a code analysis."],
+        "output": "An URL"
+    },
+    "CREATE_APP_BUILD": {
+        "enabled": true,
+        "triggers": ["When the user requests to launch a build, execute the task with Bitrise CI associated workflow"],
+        "output": "The Bitrise build link"
+    }
+}
