@@ -6,7 +6,7 @@ import uuid
 import difflib
 import logging
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from langchain_core.prompts import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
@@ -23,30 +23,48 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.documents import Document
 from character import generate_agent_description
 
-load_dotenv()
+# Load .env file if it exists
+dotenv_path = find_dotenv()
+load_dotenv(dotenv_path)
+print(f"✅ .env loaded from: {dotenv_path}")
 
+# Load agent profile and actions configuration
 with open('character.env.json', 'r') as file:
     agent_profile = json.load(file)
 
 with open("actions_config.json", "r") as file:
     actions_config = json.load(file)
 
+# Filter enabled actions
 enabled_actions = {key: value for key, value in actions_config.items() if value["enabled"]}
 action_labels = list(enabled_actions.keys())
 
+# Generate system prompt
 agent_description = generate_agent_description(agent_profile)
+
+# Load and validate PROJECT_PATH
 project_path = os.getenv("PROJECT_PATH")
+
+if not project_path:
+    raise EnvironmentError("❌ PROJECT_PATH environment variable is not set. Please provide it using ./agent.sh [mode] [project_path].")
+
+if not os.path.isdir(project_path):
+    raise NotADirectoryError(f"❌ PROJECT_PATH does not exist or is not a directory: {project_path}")
+
+print(f"📁 Using PROJECT_PATH: {project_path}")
+
+# Ensure the cache folder exists
 os.makedirs("cache", exist_ok=True)
 
 class AgentSession:
     def __init__(self, session_id=None, debug=False, summary_update_threshold=1):
+        self.debug = debug
         self.session_id = session_id or str(uuid.uuid4())
         self.history = ChatMessageHistory()
         self.summary_update_threshold = summary_update_threshold
         self.summary_file = os.path.join("cache", f"{self.session_id}_summary.txt")
         self.summary = self._load_summary()
         self.qa_chain = self._build_chain()
-        self.debug = debug
 
     def _log(self, message):
         if self.debug:
@@ -72,6 +90,7 @@ class AgentSession:
 
     def _build_chain(self):
         documents = []
+        self._log(f"Reading project path: {project_path}")
         for root, _, files in os.walk(project_path):
             for file in files:
                 if file.endswith(".dart"):
@@ -79,7 +98,7 @@ class AgentSession:
 
         embedding = OpenAIEmbeddings()
         db = FAISS.from_documents(documents, embedding)
-        llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
+        llm = ChatOpenAI(temperature=0, model_name="gpt-4o")
 
         prompt = ChatPromptTemplate.from_messages([
             SystemMessagePromptTemplate.from_template(

@@ -1,7 +1,7 @@
 {
     "SONAR_ANALYZE": {
         "enabled": true,
-        "triggers": ["When the user asks for a SONAR code analysis."],
+        "triggers": ["When the user requests to launch a SONAR project analysis."],
         "output": "An URL"
     },
     "CREATE_APP_BUILD": {

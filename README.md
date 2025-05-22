@@ -1,47 +1,56 @@
 # Flutter Development Assistant
 
-Flutter Development Assistant is an AI-powered tool designed to assist developers with Flutter development. It uses LangChain, OpenAI, and FAISS to provide contextual answers and perform actions based on user queries. The assistant supports multiple interfaces (CLI, Gradio UI, and API) and maintains session-based conversation history.
+Flutter Development Assistant is an AI-powered tool that helps developers with Flutter projects. It leverages LangChain, OpenAI, and FAISS to provide contextual responses and execute actions based on user input. It supports CLI, Gradio UI, and REST API interfaces, with per-session memory and summaries.
 
 ## Features
 
-- Flutter Development Support: Answers questions about Flutter and Dart code using a vector store for context.
-- Actionable Requests: Classifies user intents as REQUEST_ACTION or GENERAL_DISCUSSION and performs predefined actions (e.g., code generation, debugging).
-- Multi-Language Support: Responds in the user's preferred language (configured in character.env.json).
-- Session Management: Maintains conversation history and summaries for personalized responses.
-- Multiple Interfaces:
+- **Flutter & Dart project support**: Loads `.dart` files from a specified project and answers contextually.
+- **Action detection**: Classifies user intent as `REQUEST_ACTION` or `GENERAL_DISCUSSION` and matches predefined triggers.
+- **Multi-language replies**: Responds in the preferred language set in `character.env.json`.
+- **Session summaries**: Tracks facts about the user and appends them to a persistent summary file.
+- **Interfaces supported**:
   - Command-line interface (CLI)
-  - Web-based Gradio UI
-  - FastAPI-based REST API
-- Debug Mode: Logs detailed information for troubleshooting.
+  - Web-based UI using Gradio
+  - REST API using FastAPI
+- **Debug mode**: Verbose logging during execution.
+- **Smart action matching**: Uses fuzzy matching to find the best action for the user query.
 
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.8 or higher
+- A valid OpenAI API key
+- A local Flutter project with `.dart` files
 - Virtual environment (recommended)
-- OpenAI API key
-- Flutter/Dart project directory (specified in .env)
 
 ## Installation
 
-### Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone <repository-url>
 cd <repository-directory>
 ```
 
-### Set Up Virtual Environment Using Script
+### 2. Run with the setup script
 
 ```bash
-./agent.sh <mode>
+./agent.sh <mode> <project_path>
 ```
-Replace `<mode>` with `cli`, `gradio`, or `api`. The script will:
 
-- Create a virtual environment (venv) if it doesn't exist
-- Upgrade pip and install dependencies from requirements.txt (or default packages if not provided)
-- Check and install the required LangChain version (>=0.1.17)
+**Example:**
 
-### Manual Installation (if not using agent.sh)
+```bash
+./agent.sh cli ~/my_flutter_project
+```
+
+This script will:
+- Create a virtual environment (venv) if it does not exist
+- Upgrade pip and install dependencies
+- Check and install the required version of LangChain (>= 0.1.17)
+- Set the PROJECT_PATH environment variable
+- Launch the selected mode (cli, gradio, or api)
+
+### 3. Manual installation (optional)
 
 ```bash
 python3 -m venv venv
@@ -49,131 +58,134 @@ source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
-If `requirements.txt` is missing:
+
+If requirements.txt is not present:
 
 ```bash
 pip install langchain>=0.1.17 langchain-community langchain-openai openai faiss-cpu python-dotenv watchdog colorama jinja2 gradio fastapi uvicorn
 ```
 
-## Configure Environment and Files
+## Configuration Files
 
-### 1. .env
-Stores environment variables like the OpenAI API key and Flutter project path.
+### .env
+Contains environment variables including the OpenAI API key and the Flutter project path.
 
-Example:
+**Example:**
+
 ```env
-OPENAI_API_KEY=your-openai-api-key
-PROJECT_PATH=/path/to/your/flutter/project
+OPENAI_API_KEY=sk-xxxxxxxxxxxx
+PROJECT_PATH=/path/to/flutter/project
 ```
 
-Create `.env` in the root directory and ensure it's loaded using python-dotenv.
+### character.env.json
+Defines the assistant's personality and preferred language.
 
-### 2. character.env.json
-Defines assistant's profile, language, and behavior.
+**Example:**
 
-Example:
 ```json
 {
   "name": "FlutterBot",
   "language": "English",
-  "description": "A helpful AI assistant for Flutter development.",
+  "description": "An assistant for Flutter development.",
   "tone": "friendly",
-  "expertise": ["Flutter", "Dart", "Mobile Development"]
+  "expertise": ["Flutter", "Dart", "Mobile"]
 }
 ```
 
-### 3. actions_config.json
-Defines available actions, their triggers, and outputs.
+### actions_config.json
+Lists available actions and their corresponding triggers.
 
-Example:
+**Example:**
+
 ```json
 {
   "generate_code": {
     "enabled": true,
-    "triggers": ["generate a flutter widget", "create a dart function"],
+    "triggers": ["generate a widget", "create a Dart function"],
     "output": "Generated Flutter/Dart code"
   },
   "debug_code": {
     "enabled": true,
-    "triggers": ["debug this flutter code", "fix this dart error"],
+    "triggers": ["debug this code", "fix this Dart error"],
     "output": "Debugged code with explanation"
-  },
-  "explain_code": {
-    "enabled": false,
-    "triggers": ["explain this flutter code"],
-    "output": "Code explanation"
   }
 }
 ```
 
 ## Usage
 
-Run the assistant in one of the supported modes:
+Launch one of the available modes:
 
 ```bash
-./agent.sh <mode>
+./agent.sh <mode> <project_path>
 ```
 
-- CLI mode:
+### Modes:
+
+**CLI:**
 ```bash
-./agent.sh cli
-```
-- Gradio UI mode:
-```bash
-./agent.sh gradio
-```
-- API mode:
-```bash
-./agent.sh api
+./agent.sh cli ./my_flutter_app
 ```
 
-## Project Structure
-
+**Gradio Web UI:**
+```bash
+./agent.sh gradio ./my_flutter_app
 ```
-├── agent.py                # Main assistant script
-├── agent.sh                # Setup and run script
-├── character.py            # Agent prompt generator
-├── character.env.json      # Assistant profile config
-├── actions_config.json     # Actions config
-├── .env                    # Environment variables
-├── cache/                  # Session summaries
-├── interfaces/             # Interface scripts
-│   ├── cli.py
-│   ├── gradio_ui.py
-│   ├── api.py
-├── requirements.txt        # Dependency list (optional)
-└── venv/                   # Virtual environment
+
+**FastAPI REST API:**
+```bash
+./agent.sh api ./my_flutter_app
 ```
 
 ## How It Works
 
-- **Initialization**: Loads `.env`, `character.env.json`, and `actions_config.json`. Creates a FAISS vector store from `.dart` files. Initializes LangChain QA with OpenAI.
-- **Session Management**: Maintains chat history and stores summaries in `cache/<session_id>_summary.txt`.
-- **Query Processing**: Classifies input, matches actions, and returns structured JSON.
-- **Summary Compression**: Periodically condenses logs into bullet-point summaries.
+1. Loads `.dart` files from the Flutter project specified in PROJECT_PATH.
+2. Creates a vector store (FAISS) and uses LangChain with OpenAI to answer queries.
+3. Classifies queries as `REQUEST_ACTION` or `GENERAL_DISCUSSION`.
+4. If action is required, matches the closest defined trigger using fuzzy matching.
+5. Maintains session summaries in `cache/<session_id>_summary.txt`, which get compressed as needed.
 
-## Debugging
+## Project Structure
 
-Enable debug mode by initializing the agent session with:
+```
+.
+├── agent.sh                  # Startup script with mode and project path
+├── agent_core.py             # Assistant core logic
+├── character.env.json        # Assistant personality config
+├── actions_config.json       # Action definitions
+├── .env                      # Environment variables
+├── interfaces/
+│   ├── cli.py
+│   ├── gradio_ui.py
+│   └── api.py
+├── cache/                    # Session summaries
+├── requirements.txt          # Optional dependency list
+└── venv/                     # Virtual environment
+```
+
+## Debug Mode
+
+You can enable verbose logging by instantiating the agent with:
+
 ```python
 session = AgentSession(debug=True)
 ```
 
 ## Limitations
 
-- Requires a valid OpenAI API key
-- Processes only `.dart` files in `PROJECT_PATH`
-- Action matching depends on phrase triggers
-- Voice and BigBrain modes are not supported
+- Only processes `.dart` files within the project path
+- Actions depend on matching string triggers
+- Requires OpenAI API access
+- No support for voice input or external knowledge injection
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature-name`
-3. Commit your changes: `git commit -m "Add feature"`
-4. Push the branch: `git push origin feature-name`
-5. Open a pull request
+3. Commit changes: `git commit -m "Add feature"`
+4. Push to your fork: `git push origin feature-name`
+5. Open a pull request on the main repository
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for more information.
+This project is licensed under the MIT License. See the LICENSE file for details.
